@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from groq import Groq
@@ -7,6 +9,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from datetime import datetime
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +32,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend static files
+frontend_dist = Path("../frontend/dist")
+if frontend_dist.exists():
+    logger.info(f"Frontend dist found at {frontend_dist}")
+    assets_path = frontend_dist / "assets"
+    if assets_path.exists():
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+        logger.info("Assets mounted successfully")
+    else:
+        logger.warning("Assets folder not found")
+else:
+    logger.warning(f"Frontend dist not found at {frontend_dist}")
 
 # Get Groq API key
 GROQ_KEY = os.getenv("GROQ_API_KEY")
@@ -80,11 +96,7 @@ def generate_ai_response(prompt: str, max_tokens=500):
         logger.error(f"Error calling Groq API: {e}")
         raise HTTPException(status_code=500, detail=f"AI Generation Error: {str(e)}")
 
-@app.get("/")
-def home():
-    return {"message": "Resume Builder AI Backend Running", "status": "online"}
-
-@app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
@@ -217,6 +229,28 @@ async def generate_summary(request: SummaryGenerateRequest):
     except Exception as e:
         logger.error(f"Error generating summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Serve React frontend for all routes except API
+@app.get("/")
+async def serve_root():
+    """Serve the React frontend"""
+    index_path = frontend_dist / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "Resume Builder AI Backend Running", "status": "online"}
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """Serve React frontend for all non-API routes"""
+    # Skip API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Try to serve index.html for all frontend routes
+    index_path = frontend_dist / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "Frontend not found", "status": "error"}
 
 if __name__ == "__main__":
     import uvicorn
