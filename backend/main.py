@@ -5,11 +5,10 @@ from typing import List, Optional, Dict
 from groq import Groq
 from dotenv import load_dotenv
 import os
-import json
 import logging
 from datetime import datetime
 
-# Configure logging for Railway
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ load_dotenv()
 
 app = FastAPI(title="Resume Builder API", version="1.0.0")
 
-# Updated CORS for Railway deployment
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -31,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Get Groq API key from environment
+# Get Groq API key
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_KEY:
     logger.error("ERROR: GROQ_API_KEY not found in environment variables")
@@ -46,7 +45,7 @@ except Exception as e:
     logger.error(f"Failed to initialize Groq client: {e}")
     raise
 
-# Pydantic models for validation
+# Pydantic models
 class ExperienceGenerateRequest(BaseModel):
     job_title: str
     company: str
@@ -63,17 +62,6 @@ class SummaryGenerateRequest(BaseModel):
     experience: List[Dict]
     projects: List[Dict]
     education: List[Dict]
-
-def format_date(date_obj):
-    """Format date for better readability"""
-    if not date_obj:
-        return "Present"
-    try:
-        if isinstance(date_obj, str):
-            return date_obj
-        return date_obj.strftime("%B %Y") if hasattr(date_obj, 'strftime') else str(date_obj)
-    except:
-        return str(date_obj)
 
 def generate_ai_response(prompt: str, max_tokens=500):
     """Reusable function to call Groq API."""
@@ -98,7 +86,6 @@ def home():
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for Railway monitoring"""
     return {
         "status": "healthy",
         "groq_configured": GROQ_KEY is not None,
@@ -166,28 +153,21 @@ async def generate_summary(request: SummaryGenerateRequest):
     try:
         logger.info("Generating professional summary")
         
-        # Extract information
-        name = f"{request.personal_info.get('firstname', '')} {request.personal_info.get('lastname', '')}".strip()
-        
-        # Get top skills
         top_skills = request.skills[:5] if request.skills else []
         skills_str = ", ".join(top_skills) if top_skills else "various technical skills"
         
-        # Get job titles from experience
         job_titles = []
         for exp in request.experience[:1]:
             if exp.get('jobtitle'):
                 job_titles.append(exp['jobtitle'])
         job_title = job_titles[0] if job_titles else "professional"
         
-        # Get company names
         companies = []
         for exp in request.experience[:1]:
             if exp.get('company'):
                 companies.append(exp['company'])
         company = companies[0] if companies else ""
         
-        # Calculate years of experience
         years = 0
         for exp in request.experience:
             if exp.get('startdate'):
@@ -202,7 +182,6 @@ async def generate_summary(request: SummaryGenerateRequest):
                 except:
                     pass
         
-        # Build prompt
         if years > 0:
             experience_part = f"With {years} years of experience as a {job_title}"
         else:
@@ -211,18 +190,11 @@ async def generate_summary(request: SummaryGenerateRequest):
         if company:
             experience_part += f" at {company}"
         
-        # Get education info
-        education_info = ""
-        if request.education and len(request.education) > 0 and request.education[0].get('degree'):
-            edu = request.education[0]
-            education_info = f"Education: {edu.get('degree', '')} in {edu.get('subject', '')}"
-        
         prompt = f"""
         Write a natural, human-sounding resume summary in FIRST PERSON (using "I") for:
 
         {experience_part}.
         Skilled in {skills_str}.
-        {education_info}
 
         Requirements:
         - 2-3 sentences
@@ -237,8 +209,6 @@ async def generate_summary(request: SummaryGenerateRequest):
         
         generated_text = generate_ai_response(prompt, max_tokens=200)
         generated_text = generated_text.strip()
-        
-        # Clean up and ensure natural language
         generated_text = generated_text.replace('"', '')
         
         logger.info("Summary generated successfully")
@@ -250,7 +220,6 @@ async def generate_summary(request: SummaryGenerateRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Use PORT from environment for Railway compatibility
     port = int(os.getenv("PORT", 8000))
     logger.info(f"Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
