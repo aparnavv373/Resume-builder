@@ -26,7 +26,7 @@ if not GROQ_KEY:
 
 client = Groq(api_key=GROQ_KEY)
 
-# Pydantic models for validation
+
 class ExperienceGenerateRequest(BaseModel):
     job_title: str
     company: str
@@ -42,7 +42,7 @@ class SummaryGenerateRequest(BaseModel):
     skills: List[str]
     experience: List[Dict]
     projects: List[Dict]
-    education: List[Dict]  # Added education field
+    education: List[Dict]  
 
 def format_date(date_obj):
     """Format date for better readability"""
@@ -126,24 +126,24 @@ async def generate_summary(request: SummaryGenerateRequest):
        
         name = f"{request.personal_info.get('firstname', '')} {request.personal_info.get('lastname', '')}".strip()
         
-       
+      
         top_skills = request.skills[:5] if request.skills else []
         skills_str = ", ".join(top_skills) if top_skills else "various technical skills"
         
-        
+
         job_titles = []
         for exp in request.experience[:1]:
             if exp.get('jobtitle'):
                 job_titles.append(exp['jobtitle'])
         job_title = job_titles[0] if job_titles else "professional"
- 
+        
+       
         companies = []
         for exp in request.experience[:1]:
             if exp.get('company'):
                 companies.append(exp['company'])
         company = companies[0] if companies else ""
-        
-       
+
         years = 0
         for exp in request.experience:
             if exp.get('startdate'):
@@ -155,7 +155,6 @@ async def generate_summary(request: SummaryGenerateRequest):
                 except:
                     pass
         
-    
         if years > 0:
             experience_part = f"With {years} years of experience as a {job_title}"
         else:
@@ -184,8 +183,7 @@ async def generate_summary(request: SummaryGenerateRequest):
         
         generated_text = generate_ai_response(prompt, max_tokens=200)
         generated_text = generated_text.strip()
-        
-    
+          
         generated_text = generated_text.replace('"', '')
         
         return {"generated_text": generated_text}
