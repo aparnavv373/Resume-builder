@@ -6,27 +6,47 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 import json
+import logging
 from datetime import datetime
+
+# Configure logging for Railway
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(title="Resume Builder API", version="1.0.0")
 
+# Updated CORS for Railway deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://*.railway.app",
+        "https://*.railway.internal",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Get Groq API key from environment
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_KEY:
-    raise Exception("❌ ERROR: GROQ_API_KEY not found in .env file!")
+    logger.error("ERROR: GROQ_API_KEY not found in environment variables")
+    raise Exception("GROQ_API_KEY not found in environment variables")
 
-client = Groq(api_key=GROQ_KEY)
+logger.info("Groq API key loaded successfully")
 
+try:
+    client = Groq(api_key=GROQ_KEY)
+    logger.info("Groq client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Groq client: {e}")
+    raise
 
+# Pydantic models for validation
 class ExperienceGenerateRequest(BaseModel):
     job_title: str
     company: str
@@ -42,7 +62,7 @@ class SummaryGenerateRequest(BaseModel):
     skills: List[str]
     experience: List[Dict]
     projects: List[Dict]
-    education: List[Dict]  
+    education: List[Dict]
 
 def format_date(date_obj):
     """Format date for better readability"""
@@ -58,20 +78,39 @@ def format_date(date_obj):
 def generate_ai_response(prompt: str, max_tokens=500):
     """Reusable function to call Groq API."""
     try:
+        logger.info(f"Sending request to Groq API (prompt length: {len(prompt)})")
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=max_tokens,
         )
-        return response.choices[0].message.content
+        generated_text = response.choices[0].message.content
+        logger.info(f"Successfully generated response (length: {len(generated_text)})")
+        return generated_text
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error calling Groq API: {e}")
+        raise HTTPException(status_code=500, detail=f"AI Generation Error: {str(e)}")
+
+@app.get("/")
+def home():
+    return {"message": "Resume Builder AI Backend Running", "status": "online"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for Railway monitoring"""
+    return {
+        "status": "healthy",
+        "groq_configured": GROQ_KEY is not None,
+        "service": "resume-builder-backend"
+    }
 
 @app.post("/api/generate/experience")
 async def generate_experience(request: ExperienceGenerateRequest):
     if not request.job_title or not request.company:
         raise HTTPException(status_code=422, detail="Job title and company are required")
+    
+    logger.info(f"Generating experience for: {request.job_title} at {request.company}")
     
     prompt = f"""
     Write a professional resume experience section based on these details:
@@ -99,6 +138,8 @@ async def generate_project(request: ProjectGenerateRequest):
     if not request.title:
         raise HTTPException(status_code=422, detail="Project title is required")
     
+    logger.info(f"Generating project description for: {request.title}")
+    
     prompt = f"""
     Create a professional project description for a resume:
 
@@ -123,38 +164,45 @@ async def generate_project(request: ProjectGenerateRequest):
 @app.post("/api/generate/summary")
 async def generate_summary(request: SummaryGenerateRequest):
     try:
-       
+        logger.info("Generating professional summary")
+        
+        # Extract information
         name = f"{request.personal_info.get('firstname', '')} {request.personal_info.get('lastname', '')}".strip()
         
-      
+        # Get top skills
         top_skills = request.skills[:5] if request.skills else []
         skills_str = ", ".join(top_skills) if top_skills else "various technical skills"
         
-
+        # Get job titles from experience
         job_titles = []
         for exp in request.experience[:1]:
             if exp.get('jobtitle'):
                 job_titles.append(exp['jobtitle'])
         job_title = job_titles[0] if job_titles else "professional"
         
-       
+        # Get company names
         companies = []
         for exp in request.experience[:1]:
             if exp.get('company'):
                 companies.append(exp['company'])
         company = companies[0] if companies else ""
-
+        
+        # Calculate years of experience
         years = 0
         for exp in request.experience:
             if exp.get('startdate'):
                 try:
-                    start_year = int(str(exp.get('startdate', ''))[:4])
-                    current_year = 2024
+                    if isinstance(exp['startdate'], str):
+                        start_year = int(exp['startdate'][:4])
+                    else:
+                        start_year = exp['startdate'].year if hasattr(exp['startdate'], 'year') else 2020
+                    current_year = datetime.now().year
                     exp_years = current_year - start_year
                     years = max(years, exp_years)
                 except:
                     pass
         
+        # Build prompt
         if years > 0:
             experience_part = f"With {years} years of experience as a {job_title}"
         else:
@@ -163,12 +211,18 @@ async def generate_summary(request: SummaryGenerateRequest):
         if company:
             experience_part += f" at {company}"
         
+        # Get education info
+        education_info = ""
+        if request.education and len(request.education) > 0 and request.education[0].get('degree'):
+            edu = request.education[0]
+            education_info = f"Education: {edu.get('degree', '')} in {edu.get('subject', '')}"
+        
         prompt = f"""
         Write a natural, human-sounding resume summary in FIRST PERSON (using "I") for:
 
         {experience_part}.
         Skilled in {skills_str}.
-        {f"Education: {request.education[0].get('degree')} in {request.education[0].get('subject')}" if request.education and request.education[0].get('degree') else ""}
+        {education_info}
 
         Requirements:
         - 2-3 sentences
@@ -178,23 +232,25 @@ async def generate_summary(request: SummaryGenerateRequest):
         - End with career goals or value proposition
         - No bullet points, no emojis
         
-        Example: "I am a {job_title} with {years} years of experience specializing in {skills_str.split(',')[0]}. I have a proven track record of delivering results and I'm passionate about creating impactful solutions."
+        Example: "I am a {job_title} with {years} years of experience specializing in {skills_str.split(',')[0] if skills_str else 'my field'}. I have a proven track record of delivering results and I'm passionate about creating impactful solutions."
         """
         
         generated_text = generate_ai_response(prompt, max_tokens=200)
         generated_text = generated_text.strip()
-          
+        
+        # Clean up and ensure natural language
         generated_text = generated_text.replace('"', '')
         
+        logger.info("Summary generated successfully")
         return {"generated_text": generated_text}
         
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error generating summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-@app.get("/")
-def home():
-    return {"message": "Resume Builder AI Backend Running!"}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use PORT from environment for Railway compatibility
+    port = int(os.getenv("PORT", 8000))
+    logger.info(f"Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

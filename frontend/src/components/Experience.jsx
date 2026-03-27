@@ -1,4 +1,4 @@
-import { DatePicker } from "react-datepicker";
+import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa";
@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { FaPlus } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
 import { FiLoader } from "react-icons/fi";
+import { generateExperience } from '../services/api';
 
 function Experience({ experience, setExperience }) {
   const navigate = useNavigate();
@@ -50,24 +51,11 @@ function Experience({ experience, setExperience }) {
     setAiError(null);
     
     try {
-      const response = await fetch('http://localhost:8000/api/generate/experience', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          job_title: exp.jobtitle.trim(),
-          company: exp.company.trim(),
-          description: exp.description || ""
-        })
+      const data = await generateExperience({
+        job_title: exp.jobtitle.trim(),
+        company: exp.company.trim(),
+        description: exp.description || ""
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Server returned ${response.status}`);
-      }
-      
-      const data = await response.json();
       
       if (data.generated_text) {
         const updated = [...experience];
@@ -81,7 +69,7 @@ function Experience({ experience, setExperience }) {
       let errorMessage = error.message;
       
       if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Cannot connect to backend. Make sure the server is running on port 8000';
+        errorMessage = 'Cannot connect to backend. Make sure the server is running.';
       } else if (error.message.includes('422')) {
         errorMessage = 'Invalid data format. Please check your job title and company.';
       } else if (error.message.includes('500')) {
@@ -308,7 +296,6 @@ function Experience({ experience, setExperience }) {
         </div>
       </div>
       
-     
       <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="font-semibold text-blue-800 mb-2">💡 Tips for Better AI Generation</h3>
         <ul className="text-sm text-blue-700 space-y-1">

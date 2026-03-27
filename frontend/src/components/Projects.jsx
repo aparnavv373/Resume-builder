@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { FiLoader } from "react-icons/fi";
 import { useState } from "react";
+import { generateProject } from '../services/api';
 
 function Projects({ projects, setProjects }) {
   const navigate = useNavigate();
@@ -31,7 +32,8 @@ function Projects({ projects, setProjects }) {
   const generateDescription = async (index) => {
     const proj = projects[index];
     if (!proj.title) {
-      alert("Please enter Project Title first");
+      setAiError("Please enter Project Title first");
+      setTimeout(() => setAiError(null), 3000);
       return;
     }
 
@@ -39,25 +41,19 @@ function Projects({ projects, setProjects }) {
     setAiError(null);
     
     try {
-      const response = await fetch('http://localhost:8000/api/generate/project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: proj.title,
-          techstack: proj.techstack,
-          description: proj.description
-        })
+      const data = await generateProject({
+        title: proj.title,
+        techstack: proj.techstack,
+        description: proj.description
       });
       
-      if (!response.ok) throw new Error('Failed to generate');
-      
-      const data = await response.json();
       const updated = [...projects];
       updated[index].description = data.generated_text;
       setProjects(updated);
     } catch (error) {
-      setAiError('Failed to generate description. Please try again.');
-      console.error(error);
+      console.error('Generation error:', error);
+      setAiError(error.message || 'Failed to generate description. Please try again.');
+      setTimeout(() => setAiError(null), 3000);
     } finally {
       setGeneratingIndex(null);
     }
@@ -71,8 +67,8 @@ function Projects({ projects, setProjects }) {
         techstack: "",
         link: "",
         description: "",
-        startdate: "",
-        enddate: "",
+        startdate: null,
+        enddate: null,
       },
     ]);
   };
@@ -164,7 +160,7 @@ function Projects({ projects, setProjects }) {
           </div>
           
           <button 
-            className="bg-black text-white px-6 py-2 rounded w-full md:w-auto"
+            className="bg-black text-white px-6 py-2 rounded w-full md:w-auto hover:bg-gray-800 transition-colors disabled:opacity-50"
             onClick={() => generateDescription(index)}
             disabled={generatingIndex === index}
           >
@@ -217,10 +213,10 @@ function Projects({ projects, setProjects }) {
           <button className="underline" onClick={() => navigate("/skills")}>
             Skip for Now
           </button>
-          <button className="bg-black text-white px-4 py-2 rounded" onClick={() => navigate("/finalize")}>
+          <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors" onClick={() => navigate("/finalize")}>
             Preview
           </button>
-          <button className="bg-black text-white px-4 py-2 rounded" onClick={() => navigate("/skills")}>
+          <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors" onClick={() => navigate("/skills")}>
             Next
           </button>
         </div>

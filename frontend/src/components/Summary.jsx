@@ -1,9 +1,9 @@
-// Summary.jsx
 import { FaArrowLeft } from "react-icons/fa";
 import { FaCirclePlus } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 import { FiLoader } from "react-icons/fi";
 import { useState } from "react";
+import { generateSummary } from '../services/api';
 
 function Summary({ summary, setSummary, personaldata, skills, experience, projects, education }) {
   const navigate = useNavigate();
@@ -14,12 +14,11 @@ function Summary({ summary, setSummary, personaldata, skills, experience, projec
     setSummary(text);
   };
 
-  const generateSummary = async () => {
+  const generateSummaryHandler = async () => {
     setGenerating(true);
     setAiError(null);
     
     try {
-  
       const formattedExperience = experience.map(exp => ({
         jobtitle: exp.jobtitle || "",
         company: exp.company || "",
@@ -66,24 +65,9 @@ function Summary({ summary, setSummary, personaldata, skills, experience, projec
         education: formattedEducation 
       };
 
-      console.log("Sending request with data:", requestData);
+      console.log("Generating summary with data:", requestData);
 
-      const response = await fetch('http://localhost:8000/api/generate/summary', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Server error:", errorData);
-        throw new Error(errorData.detail || `Server returned ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log("Generated summary:", data);
+      const data = await generateSummary(requestData);
       
       if (data.generated_text) {
         setSummary(data.generated_text);
@@ -96,11 +80,11 @@ function Summary({ summary, setSummary, personaldata, skills, experience, projec
       let errorMessage = error.message;
       
       if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Cannot connect to backend. Make sure the server is running: cd backend && python main.py';
+        errorMessage = 'Cannot connect to backend. Make sure the server is running.';
       } else if (error.message.includes('422')) {
         errorMessage = 'Invalid data format. Please fill in all required fields.';
       } else if (error.message.includes('500')) {
-        errorMessage = 'Server error. Check your GROQ_API_KEY in .env file and ensure all data is properly formatted.';
+        errorMessage = 'Server error. Please try again later.';
       }
       
       setAiError(errorMessage);
@@ -138,7 +122,7 @@ function Summary({ summary, setSummary, personaldata, skills, experience, projec
 
       <button 
         className="bg-black text-white px-6 py-2 rounded w-full md:w-auto mb-6 hover:bg-gray-800 transition-colors disabled:opacity-50"
-        onClick={generateSummary}
+        onClick={generateSummaryHandler}
         disabled={generating}
       >
         {generating ? (
