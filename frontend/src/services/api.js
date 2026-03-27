@@ -1,4 +1,3 @@
-// services/api.js
 import { API_BASE_URL } from '../config';
 
 export const generateExperience = async (data) => {
@@ -10,9 +9,8 @@ export const generateExperience = async (data) => {
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to generate experience description');
+    throw new Error(error.detail || 'Failed to generate experience');
   }
-  
   return response.json();
 };
 
@@ -25,9 +23,8 @@ export const generateProject = async (data) => {
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to generate project description');
+    throw new Error(error.detail || 'Failed to generate project');
   }
-  
   return response.json();
 };
 
@@ -40,8 +37,7 @@ export const generateSummary = async (data) => {
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to generate professional summary');
+    throw new Error(error.detail || 'Failed to generate summary');
   }
-  
   return response.json();
 };
