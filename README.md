@@ -1,9 +1,9 @@
 
-# 📄 AI-Powered Resume Builder
+#  AI-Powered Resume Builder
 
 
 
-An intelligent resume builder application that uses AI to generate professional resume content, helping job seekers create impressive resumes quickly and effectively.
+A resume builder application that uses AI to generate professional resume content, helping job seekers create impressive resumes quickly and effectively.
 
 ## ✨ Features
 
@@ -28,3 +28,39 @@ An intelligent resume builder application that uses AI to generate professional 
 - **FastAPI** (Python) for REST API
 - **Groq API** with LLaMA 3.3 70B model for AI generation
 - **CORS** middleware for cross-origin requests
+# Resume Builder with AI
+
+A modern, AI-powered resume builder application that helps you create professional resumes with intelligent content generation.
+
+## Live Demo
+
+🌐 **Live App:** [Live Demo](https://resume-builder-production-740e.up.railway.app)
+
+## Features
+
+- ✨ **AI-Powered Content Generation** - Generate professional descriptions for experience, projects, and summaries using Groq AI
+- 📝 **Multi-Step Form** - Easy step-by-step resume building process
+- 💾 **Auto-Save** - Resume data automatically saved in browser localStorage
+- 🖨️ **PDF Export** - Print or save your resume as PDF
+- 📱 **Responsive Design** - Works on desktop, tablet, and mobile devices
+- 🎨 **Modern UI** - Clean, professional interface with Tailwind CSS
+
+## Tech Stack
+
+### Frontend
+- React 1
+- Vite
+- Tailwind CSS
+- React Router DOM
+- React DatePicker
+
+### Backend
+- FastAPI
+- Groq AI (LLaMA 3.3)
+- Uvicorn
+- Python 3.11
+
+
+
+
+
