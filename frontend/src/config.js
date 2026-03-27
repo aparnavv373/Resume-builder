@@ -1,9 +1,6 @@
-// config.js - API configuration for different environments
 
-// config.js
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://resume-builder-production-740e.up.railway.app';
 
-// Helper function for API calls with error handling
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
