@@ -5,7 +5,7 @@
 
 A resume builder application that uses AI to generate professional resume content, helping job seekers create impressive resumes quickly and effectively.
 
-## ✨ Features
+##  Features
 
 - **AI-Powered Content Generation**: Automatically generate professional descriptions for experience, projects, and summaries
 - **Interactive Form Builder**: Step-by-step guided form for entering resume information
@@ -15,7 +15,7 @@ A resume builder application that uses AI to generate professional resume conten
 - **Skill Management**: Add, remove, and organize skills with visual feedback
 - **Real-time Validation**: Input validation with helpful error messages
 
-## 🚀 Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **React 18** with Hooks
@@ -38,12 +38,12 @@ A modern, AI-powered resume builder application that helps you create profession
 
 ## Features
 
-- ✨ **AI-Powered Content Generation** - Generate professional descriptions for experience, projects, and summaries using Groq AI
-- 📝 **Multi-Step Form** - Easy step-by-step resume building process
-- 💾 **Auto-Save** - Resume data automatically saved in browser localStorage
-- 🖨️ **PDF Export** - Print or save your resume as PDF
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile devices
-- 🎨 **Modern UI** - Clean, professional interface with Tailwind CSS
+-  **AI-Powered Content Generation** - Generate professional descriptions for experience, projects, and summaries using Groq AI
+-  **Multi-Step Form** - Easy step-by-step resume building process
+-  **Auto-Save** - Resume data automatically saved in browser localStorage
+-  **PDF Export** - Print or save your resume as PDF
+-  **Responsive Design** - Works on desktop, tablet, and mobile devices
+-  **Modern UI** - Clean, professional interface with Tailwind CSS
 
 ## Tech Stack
 
